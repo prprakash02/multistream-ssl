@@ -1,0 +1,65 @@
+seed: 42
+output_root: outputs
+
+data:
+  root: data/processed
+  name: example            # directory under data.root written by the preprocessing stage
+  batch_size: 32
+  num_workers: 4
+
+model:
+  embed_dim: 256
+  max_offset: 4            # candidate offsets span [-max_offset, +max_offset]
+  proj_dim: 64
+  temperature: 0.1
+  readout: sparsemax       # sparsemax | softmax
+  topk: 0                  # 0 uses every candidate in the expectation
+  influence_normalize: softmax
+  transform_kind: mlp      # linear | mlp
+  base_residual: true
+  target_norm: none        # none | layernorm
+  pad: replicate
+  horizons: [1]
+  streams:                 # one entry per stream; add entries to scale the graph
+    stream_a: {type: feature, in_dim: 128}
+    stream_b: {type: conv, in_channels: 6}
+  dino:
+    out_dim: 1024
+    hidden: 512
+    bottleneck: 128
+    teacher_temp: 0.04
+    student_temp: 0.1
+    center_momentum: 0.9
+  ema:
+    base: 0.996
+    final: 1.0
+  loss:
+    kind: cosine           # cosine | mse | smooth_l1
+    vicreg_coeff: 0.1
+    spread_coeff: 0.05
+    dino_coeff: 1.0
+    align_coeff: 0.25
+    align_temp: 0.1
+    align_proj_dim: 128
+    aux_coeff: 0.0         # always zero
+
+optim:
+  lr: 4.0e-4
+  weight_decay: 0.05
+  betas: [0.9, 0.95]
+  warmup_epochs: 5
+  min_lr: 1.0e-6
+  schedule_epochs: 150
+
+train:
+  epochs: 150
+  amp: true
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  targets_per_step: 1
+  log_every: 50
+
+eval:
+  probe_epochs: 100
+  probe_lr: 1.0e-3
+  pooling: mean
